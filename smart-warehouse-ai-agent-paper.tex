@@ -1,9 +1,14 @@
+% Load the encoding before IEEEtran selects its Times text fonts.
+\renewcommand{\rmdefault}{cmr}
+\usefont{OT1}{cmr}{m}{n}
+\RequirePackage[OT1]{fontenc}
 \documentclass[conference]{IEEEtran}
 \usepackage{amsmath}
 \usepackage{array}
 \usepackage{tabularx}
 \usepackage{cite}
 \usepackage{url}
+\urlstyle{same}
 
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \newcommand{\stage}[2]{\fbox{\parbox[c][0.63in][c]{0.195\textwidth}{\centering\small\textbf{#1}\\[-1pt]\footnotesize #2}}}
@@ -231,33 +236,33 @@ This paper describes a warehouse document processing prototype that parses elect
 
 \begin{thebibliography}{10}
 \bibitem{sroie}
-Z. Huang, K. Chen, J. He, X. Bai, D. Karatzas, S. Lu, and C. V. Jawahar, \emph{ICDAR2019 Competition on Scanned Receipt OCR and Information Extraction}, Proc. ICDAR, 2019, doi: 10.1109/ICDAR.2019.00244.
+Z. Huang, K. Chen, J. He, X. Bai, D. Karatzas, S. Lu, and C. V. Jawahar, ``ICDAR2019 Competition on Scanned Receipt OCR and Information Extraction,'' in \emph{Proc. ICDAR}, 2019, doi: \url{10.1109/ICDAR.2019.00244}.
 
 \bibitem{docvqa}
-M. Mathew, D. Karatzas, and C. V. Jawahar, \emph{DocVQA: A Dataset for VQA on Document Images}, Proc. WACV, 2021, doi: 10.1109/WACV48630.2021.00225.
+M. Mathew, D. Karatzas, and C. V. Jawahar, ``DocVQA: A Dataset for VQA on Document Images,'' in \emph{Proc. WACV}, 2021, doi: \url{10.1109/WACV48630.2021.00225}.
 
 \bibitem{aidagent}
-B. Li, J. Conen, and F. Aller, \emph{AID-Agent: An LLM-Agent for Advanced Extraction and Integration of Documents}, Proc. REALM, 2025, pp. 80--88, doi: 10.18653/v1/2025.realm-1.6.
+B. Li, J. Conen, and F. Aller, ``AID-Agent: An LLM-Agent for Advanced Extraction and Integration of Documents,'' in \emph{Proc. REALM}, 2025, pp. 80--88, doi: \url{10.18653/v1/2025.realm-1.6}.
 
 \bibitem{docagent}
-L. Sun, L. He, S. Jia, Y. He, and C. You, \emph{DocAgent: An Agentic Framework for Multi-Modal Long-Context Document Understanding}, Proc. EMNLP, 2025, pp. 17701--17716, doi: 10.18653/v1/2025.emnlp-main.893.
+L. Sun, L. He, S. Jia, Y. He, and C. You, ``DocAgent: An Agentic Framework for Multi-Modal Long-Context Document Understanding,'' in \emph{Proc. EMNLP}, 2025, pp. 17701--17716, doi: \url{10.18653/v1/2025.emnlp-main.893}.
 
 \bibitem{inventory}
-N. DeHoratius and A. Raman, \emph{Inventory Record Inaccuracy: An Empirical Analysis}, Management Science, vol. 54, no. 4, pp. 627--641, 2008, doi: 10.1287/mnsc.1070.0789.
+N. DeHoratius and A. Raman, ``Inventory Record Inaccuracy: An Empirical Analysis,'' \emph{Management Science}, vol. 54, no. 4, pp. 627--641, 2008, doi: \url{10.1287/mnsc.1070.0789}.
 
 \bibitem{cycle}
-I. R. Destro, F. H. Staudt, K. Somensi, and C. Taboada, \emph{The Impacts of Inventory Record Inaccuracy and Cycle Counting on Distribution Center Performance}, Production, vol. 33, 2023, doi: 10.1590/0103-6513.20220077.
+I. R. Destro, F. H. Staudt, K. Somensi, and C. Taboada, ``The Impacts of Inventory Record Inaccuracy and Cycle Counting on Distribution Center Performance,'' \emph{Production}, vol. 33, 2023, doi: \url{10.1590/0103-6513.20220077}.
 
 \bibitem{gs1}
 GS1, \emph{GS1 Logistic Label Guideline}, release 1.3, 2019. [Online]. Available: \url{https://ref.gs1.org/guidelines/logistic-label/1.3.0/}
 
 \bibitem{amershi}
-S. Amershi \emph{et al.}, \emph{Guidelines for Human-AI Interaction}, Proc. CHI, 2019, doi: 10.1145/3290605.3300233.
+S. Amershi \emph{et al.}, ``Guidelines for Human-AI Interaction,'' in \emph{Proc. CHI}, 2019, doi: \url{10.1145/3290605.3300233}.
 
 \bibitem{nist}
-E. Tabassi, \emph{Artificial Intelligence Risk Management Framework (AI RMF 1.0)}, NIST AI 100-1, 2023, doi: 10.6028/NIST.AI.100-1.
+E. Tabassi, \emph{Artificial Intelligence Risk Management Framework (AI RMF 1.0)}, NIST AI 100-1, 2023, doi: \url{10.6028/NIST.AI.100-1}.
 
 \bibitem{project}
-\emph{Smart Warehouse AI Agent}, project repository, revision \texttt{78c5dfa}, README and prototype integration suite, 2026. [Online]. Available: \url{https://github.com/john19991225-commits/-/tree/78c5dfa897fb4e70abf9a3812d461239025c72ef}
+{\raggedright \emph{Smart Warehouse AI Agent}, project repository, revision \texttt{78c5dfa}, README and prototype integration suite, 2026. [Online]. Available: \url{https://github.com/john19991225-commits/-/tree/78c5dfa897fb4e70abf9a3812d461239025c72ef}\par}
 \end{thebibliography}
 \end{document}

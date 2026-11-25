@@ -75,10 +75,10 @@ streamlit run app.py
 
 | 文件 | 位置 |
 | --- | --- |
-| 英文論文初稿 | [LaTeX 原始稿](./conference_101719.tex) · [既有 PDF（較早版本）](./conference_101719.pdf) |
+| 英文論文初稿 | [LaTeX 原始稿](./smart-warehouse-ai-agent-paper.tex) · [論文 PDF](./smart-warehouse-ai-agent-paper.pdf) |
 | 原型說明 | [README](https://github.com/john19991225-commits/-/blob/78c5dfa897fb4e70abf9a3812d461239025c72ef/README.md) · [程式入口](https://github.com/john19991225-commits/-/blob/78c5dfa897fb4e70abf9a3812d461239025c72ef/app.py) · [自動化測試](https://github.com/john19991225-commits/-/blob/78c5dfa897fb4e70abf9a3812d461239025c72ef/tests/test_mvp.py) |
 | 專案提案 | [proposal.md](https://github.com/john19991225-commits/-/blob/78c5dfa897fb4e70abf9a3812d461239025c72ef/proposal.md) |
 | 系統架構 | [architecture.md](https://github.com/john19991225-commits/-/blob/78c5dfa897fb4e70abf9a3812d461239025c72ef/architecture.md) |
 | 演算法 | [algorithm.md](https://github.com/john19991225-commits/-/blob/78c5dfa897fb4e70abf9a3812d461239025c72ef/algorithm.md) |
 | 實驗規劃 | [experiments.md](https://github.com/john19991225-commits/-/blob/78c5dfa897fb4e70abf9a3812d461239025c72ef/experiments.md) |
-| OpenSpec 規格 | 待補 |
+| OpenSpec 規格 | [單據輸入與欄位擷取](./openspec/specs/document-intake/spec.md) · [庫存異常判定](./openspec/specs/inventory-anomaly-review/spec.md) · [人工確認與稽核](./openspec/specs/human-confirmation/spec.md) |
