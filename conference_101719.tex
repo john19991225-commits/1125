@@ -1,0 +1,263 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{cite}
+\usepackage{url}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\stage}[2]{\fbox{\parbox[c][0.63in][c]{0.195\textwidth}{\centering\small\textbf{#1}\\[-1pt]\footnotesize #2}}}
+\newcommand{\linkarrow}{\hspace{2pt}$\rightarrow$\hspace{2pt}}
+
+\begin{document}
+\title{An Intelligent Decision-Making Agent for Shipment and Inventory Anomalies Using Electronic Documents}
+\author{\IEEEauthorblockN{TODO: Author Information}}
+% TODO: Add author names, affiliations, and email addresses.
+\maketitle
+
+\begin{abstract}
+Shipment review requires warehouse staff to connect quantities and identifiers extracted from documents with reservations, prior transactions, and local inventory rules. This paper describes a decision support prototype that extracts fields from electronic documents, queries a seeded SQLite database, flags exceptions, and records human confirmation before saving a test document. A rule-based planner describes the intended tool sequence, and deterministic checks evaluate document history, available stock, and required fields. The prototype provides separate recognition paths for text-bearing PDFs, images processed with Tesseract, and synthetic text fixtures. Six automated tests cover selected workflow behaviors, including duplicate prevention, insufficient stock, and confirmation before persistence. We propose a matched-case evaluation comparing manual verification, OCR with fixed rules, and OCR with adaptive orchestration. The formal evaluation remains pending. The paper specifies the planned data split, labels, measures, and error analysis needed to evaluate whether adaptive tool selection improves detection or review decisions.
+\end{abstract}
+
+\begin{IEEEkeywords}
+warehouse management, document understanding, optical character recognition, inventory anomaly detection, human review
+\end{IEEEkeywords}
+
+\section{Introduction}
+A shipment document may contain a warehouse identifier, a stock-keeping unit (SKU), a requested quantity, and a unit of measure. A decision about that shipment also depends on information maintained elsewhere. A valid SKU may be absent from the selected warehouse. A quantity below the on-hand balance may exceed the amount available after reservations. An otherwise valid document may duplicate a transaction that has already been recorded. Each situation calls for a different check, and each check depends on correctly associating a document field with the corresponding external record.
+
+Consider three illustrative failure paths. First, an OCR system may read the letter O as the digit zero in a SKU. If the altered key happens to identify a different item, an apparently successful database lookup can attach an unrelated stock balance to the shipment. A decimal error can similarly turn an excessive request into an apparently acceptable one, or a valid request into an unnecessary hold. The relevant question is how the affected field changes the downstream decision. OCR character accuracy alone gives equal weight to characters in a description and characters in a product identifier.
+
+Second, an operator may upload a new scan of an already recorded shipment. The scans can have different image hashes even though both show the same document number. If a second record is accepted, staff may use it as the basis for picking or dispatching the same goods again. Conversely, document numbering can be reused across issuing organizations, so the scope of a duplicate key affects which transactions can safely be treated as repeats. The current local database uses a single document-number key. The project design considers a broader namespace for deployment.
+
+Third, the on-hand balance may include units already reserved. A request for 95 pieces against 100 on hand and 10 reserved leaves a five-piece shortfall. That result also depends on whether both values refer to the same warehouse, SKU, and unit, and whether the stock snapshot still reflects the operational state. A reviewer needs the document line and the inventory values that produced the result to decide whether to correct the document, seek a newer balance, or hold the shipment.
+
+\subsection{Research Questions and Scope}
+The study considers four questions. First, how do manual transcription and the two automated workflows compare on critical-field and complete-document exact match? Second, when the systems use the same inventory state, does adaptive tool selection change detection of duplicates, shortages, and other labeled exceptions? Third, does evidence-linked escalation help identify cases that require review, and how often does it create avoidable review work? Fourth, how do these choices affect end-to-end processing time and task completion? The primary planned comparison is between the two automated workflows, which will share recognition, parsing, and rule components.
+
+The task begins with a digital document and a user query. It ends with a disposition for review and a trace of the information used. The local prototype supports intake, parsing, and checks against synthetic inventory. Receipt, outbound shipment, and inventory-check intents are represented in the planner. The implemented shortage rule applies to outbound shipments. Full stock-count reconciliation, enterprise integration, and measurement of real warehouse productivity are outside the current evidence base.
+
+\subsection{Prototype and Study Contributions}
+The implemented work consists of a provider-based intake and parser, deterministic checks against local document and inventory records, and a confirmation step tied to a test-document write and audit records. The project also supplies six automated tests for specific behaviors. The research design adds a comparison protocol in which all three workflows receive the same cases and stock snapshots, while the two automated workflows share lower-level components. Performance, generalization across layouts, and the value of adaptive orchestration remain empirical questions.
+
+\section{Related Work}
+\subsection{OCR and Field Extraction}
+Huang \emph{et al.} organized the ICDAR SROIE competition around text localization, character recognition, and key information extraction in scanned receipts~\cite{sroie}. These tasks provide a basis for scoring text and structured fields separately. For example, all the characters in a warehouse document can be recognized correctly while a table parser assigns a quantity to the wrong line. Mathew \emph{et al.} introduced DocVQA to evaluate question answering over document images and identified document structure as an important source of difficulty~\cite{docvqa}. SROIE and DocVQA can inform a planned document-processing pretest. Warehouse evaluation additionally requires inventory snapshots, operational labels, and a definition of acceptable dispositions.
+
+\subsection{Tool-Assisted Document Understanding}
+Li \emph{et al.} proposed AID-Agent, integrating OCR and language-model-based document processing with tools for extraction and validation~\cite{aidagent}. Sun \emph{et al.} proposed DocAgent, which organizes long multimodal documents for tool-assisted retrieval and uses a reviewer agent to check answers~\cite{docagent}. These systems motivate separating acquisition, extraction, and verification. In this study, verification also crosses a transaction boundary. A product line may be legible and correctly extracted, yet its implied shipment can be infeasible when compared with current reservations. The warehouse prototype exposes deterministic checks and their inputs so the source of a flag can be inspected. Language-model planning remains a planned extension.
+
+\subsection{Inventory Anomalies and Traceability}
+DeHoratius and Raman empirically studied inventory record inaccuracy in retail operations~\cite{inventory}. Their study motivates treating recorded inventory as an operational measurement with its own error sources. Destro \emph{et al.} investigated the effects of inventory record inaccuracy and cycle counting on distribution-center performance~\cite{cycle}. The present task concerns whether a particular document and inventory state support a particular transaction recommendation. A shortage finding is therefore conditional on a selected record, time, and unit. GS1's logistic label guideline describes identifiers for logistic units and attributes including batch and date information~\cite{gs1}. These concepts inform the planned evidence and policy schema. Applicability of a batch or expiry rule will depend on item policy and the type of transaction.
+% TODO(reference): Verify full methods and evaluation details of Xu, Zhao, and Fu
+% (2025), warehouse inventory anomaly detection, DOI 10.1109/ICAIEM66060.2025.11139221,
+% before citing it as a technical comparator.
+
+\subsection{Human Review and Decision Support}
+Amershi \emph{et al.} provide human--AI interaction guidelines that include communicating system capabilities and supporting correction~\cite{amershi}. The NIST AI Risk Management Framework discusses documenting risk, responsibilities, and oversight~\cite{nist}. For warehouse review, these ideas translate into presenting the extracted values, the inventory record used, and the reason a case was escalated. They also motivate measuring whether review was warranted. A low review rate could reflect efficient triage or missed exceptions. A high review rate could reflect caution or a workflow that routinely transfers avoidable work back to operators. Neither rate can be interpreted without the reference disposition and case mix.
+% TODO(reference): Add a verified warehouse field study of exception review if
+% reporting empirical claims about operator behavior or time savings.
+
+\section{System Design}
+\subsection{Implemented Architecture}
+Figure~\ref{fig:architecture} shows the implemented service path and the proposed extensions. The Streamlit interface accepts a user query and an upload with a PNG, JPEG, or PDF extension. The analysis service generates a trace identifier and a SHA-256 digest of the input, checks for empty content, and calls the planner. Keyword matching maps the query to outbound issue, inventory check, or receipt, with receipt as the default. The planner builds seven steps for the supported intents and checks their tool identifiers against an allowlist and an eight-step limit. The service currently executes calls in a fixed sequence. The task changes the movement value used by the checks, while dynamic tool dispatch, bounded replanning, and alternate evidence retrieval are features of the proposed design.
+
+\begin{figure*}[t]
+\centering
+\stage{Intake}{Query and upload\\Trace ID and source hash}\linkarrow
+\stage{Extraction}{Provider selection\\Text and typed fields}\linkarrow
+\stage{Decision checks}{SQLite history and stock\\Rules and review status}\linkarrow
+\stage{Human confirmation}{Streamlit findings and evidence\\Confirmed test record}
+\\[3pt]
+\small Analysis and confirmed writes generate trace-linked SQLite audit events.
+\\[4pt]
+\fbox{\parbox{0.87\textwidth}{\centering\small\textbf{Planned extensions}\\
+Adaptive tool selection, alternate OCR processing, snapshot freshness, item master data, versioned policies, and structured review actions.}}
+\caption{Prototype architecture and planned extensions. The analysis path queries local records. Human confirmation can save a test document. The workflow leaves inventory balances unchanged.}
+\label{fig:architecture}
+\end{figure*}
+
+\subsection{Recognition, Parsing, and Evidence}
+The default provider routes PDFs to embedded-text extraction using \texttt{pypdf}. A PDF can contain a rendered image without a text layer. When text extraction produces no text, the provider reports an error. The image path uses Pillow to open the file and calls Tesseract through \texttt{pytesseract}. That path requires a working Tesseract installation and appropriate language data. The synthetic provider decodes UTF-8 fixtures and emits one evidence entry per nonempty line. In the integration suite, a filename ending in \texttt{.png} can identify a text fixture because the injected provider consumes the bytes as text.
+
+The parser uses regular expressions for document number, date, warehouse, pallet type, and repeated item records. Item syntax contains a SKU, description, quantity, and unit separated by a pipe or comma. The date separator is normalized, SKU and unit are uppercased, and quantities use decimal arithmetic. Where the matched string occurs in a provider evidence line, the parser stores the evidence identifier with the field or item. This linkage supports inspection of the exact text used by the parser. The providers currently supply line-level results with fixed provider scores and a default page value. Reliable per-page localization, bounding boxes, and calibrated field confidence are planned.
+
+The current parser is suited to structured text with recognizable labels and line delimiters. A table flattened into a different reading order can omit an item or attach a valid value to the wrong row. The proposed architecture calls for typed schema validation and source pointers that retain page and location. A field failure should identify the missing or conflicting evidence, so a reviewer can consult the original document or provide a clearer file. The design allows one alternate preprocessing attempt when OCR is unusable. The repository reviewed here returns an explicit failure for the unsupported or failed OCR cases in its test suite.
+
+\subsection{Inventory Retrieval and Deterministic Checks}
+The repository uses parameterized SQLite queries. History is retrieved by exact document number. Inventory is retrieved by warehouse, then indexed by SKU within the analysis function. The inventory table enforces a unique warehouse--SKU pair and stores on-hand balance, reserved balance, and unit. The code converts stock values to decimals before using them. The history and inventory operations in analysis are reads. The same repository exposes separate methods for confirmation-related document and audit writes.
+
+For an outbound line with a matching inventory row, the shortage check computes
+\begin{equation}
+q_{\mathrm{avail}} = q_{\mathrm{on\ hand}} - q_{\mathrm{reserved}}.
+\label{eq:available}
+\end{equation}
+The check raises a high-severity finding when the extracted request exceeds this value. It runs independently for each line and includes an inventory row identifier in the shortage finding. Stock allocation across multiple lines or multiple documents will require aggregation and a defined snapshot policy. The code checks whether the extracted unit belongs to a recognized set. Unit compatibility and conversion between the item and the stock record will require an additional reconciliation step before deployment.
+
+The rule module also checks document number, date, warehouse, pallet type, existence of parsed item lines, and positive quantities. It uses a fixed set of allowed pallet types. Table~\ref{tab:anomalies} links checks with disposition and identifies controls planned for later work. The prototype emits an unknown-SKU finding when its warehouse lookup lacks a match. Both a nonexistent product and a valid product stored elsewhere can produce that outcome. An independent item master and warehouse assignment check would distinguish these cases.
+
+\begin{table*}[t]
+\caption{Anomaly checks, evidence, and downstream handling}
+\label{tab:anomalies}
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\textwidth}{@{}p{0.19\textwidth}YY@{}}
+\hline
+\textbf{Anomaly or condition} & \textbf{Decision basis} & \textbf{Disposition or follow-up}\\
+\hline
+\multicolumn{3}{@{}l}{\textit{Implemented}}\\
+Exact duplicate & Same document number found in local history. The database also constrains the number to be unique. & Flag for review and reject a repeated test write. Verify document identity and numbering scope.\\
+Missing critical data & Document number, date, warehouse, or parsed item lines absent. & Request correction. Compare the source with the parsed fields and supply a corrected document if needed.\\
+No matching SKU & Parsed SKU absent from the returned warehouse inventory. & Flag for review. Check the source identifier and selected warehouse.\\
+Insufficient stock & Outbound line quantity exceeds on hand minus reserved for its matched SKU. & Flag for review. Check document quantity, available stock, and whether the quantities share the same unit.\\
+Quantity, unit, or pallet issue & Quantity is nonpositive, unit falls outside the recognized set, or pallet is missing or unrecognized. & Flag for review and verify the extracted value against the document.\\
+\hline
+\multicolumn{3}{@{}l}{\textit{Planned controls}}\\
+Stale or conflicting stock data & Snapshot timestamp exceeds the agreed age, source is unavailable, or sources disagree. & Escalate and request current or corroborating data before recommending a disposition.\\
+Fuzzy duplicate candidate & Similar identifiers or other fields after narrowing historical candidates. & Show candidate records for review and retain exact-key matching as a separate check.\\
+Warehouse, batch, or expiry exception & Item master data conflicts with warehouse assignment or an applicable policy requires missing attributes. & Show the source and policy version, then route for review or correction.\\
+\hline
+\end{tabularx}
+\end{table*}
+
+\subsection{Disposition, Confirmation, and Audit}
+After combining analytics and rule findings, the service takes the minimum evidence score. It marks a case for human review when there is any finding or the score is below 0.75. Critical missing data take precedence and produce a correction request. With zero findings and a score at or above the threshold, the status is pass recommended. Analysis errors return a failed status and indicate that human attention is needed. The scores supplied by the providers are fixed constants, so the threshold is a routing rule. Empirical calibration would require comparing scores to observed field correctness.
+
+The interface displays the plan, status, confidence value, extracted fields, findings, and available evidence. Saving a test record requires a confirmation checkbox and a nonblank actor name. The service checks that a document exists and analysis did not fail. The repository checks that the document number, date, and warehouse are present and enforces uniqueness. Other findings can still be present when a person confirms a local record. The test database stores the document and confirmation information and leaves stock balances unchanged. Confirmation is therefore a test-record action. A production hold or shipment release would require a separate authorization policy and integration.
+
+Analysis and successful test writes add events to a SQLite audit table under the same trace identifier. A trace can join the decision payload to the confirmed document row and actor. This is application-level logging. Full replay would also require the original source, recognition configuration, and versioned inventory and rule inputs. The planned design includes these references and distinguishes approval, correction, rejection, and reprocessing as explicit actions. Reprocessing is intended to create a linked attempt so the original rationale remains available.
+
+\subsection{Planned Bounded Orchestration}
+The target algorithm will decide which approved tool to call from the task, extracted fields, and results of prior calls. It will stop for correction when a required lookup key is missing, and it will stop for review when a source is unavailable or stale. If a source is usable, it will assemble a record of the document spans, stock rows, and policy versions used in the decision. Risk, confidence, source agreement, and evidence coverage will determine whether the system can recommend a disposition or should request help. Fuzzy history matches will be treated as leads that a reviewer can inspect. A language-model adapter, if implemented, would propose tool calls and organize evidence within this workflow. Deterministic code would enforce the tool allowlist, step budget, and final disposition policy.
+\subsection{Illustrative Example of Insufficient Stock}
+Consider a synthetic outbound document with identifier \texttt{TEST-002}, warehouse \texttt{WH-A}, and a line requesting 95 pieces of \texttt{SKU-001}. The values mirror those used in the prototype's shortage fixture. They illustrate a decision path. The outbound query selects the issue movement. The parser obtains the document number and warehouse, reads the SKU, quantity, and unit from the line, and links that line to its evidence identifier. The service queries exact document history and retrieves rows for \texttt{WH-A}. The seeded record for \texttt{SKU-001} contains 100 pieces on hand and 10 reserved.
+
+Equation~\eqref{eq:available} yields 90 available pieces. Because 95 exceeds 90, the service produces a high-severity shortage finding and sets the disposition to human review required, assuming other required fields are present. The finding carries the source-line identifier and inventory row identifier. The reviewer can compare the source document with the parsed line, verify warehouse and unit, and check whether reservations changed after the observed balance. If a fresh balance still shows a shortage, the operational decision could be to hold the shipment or obtain a revised request. The current UI can record a human-confirmed test document. The planned review design adds explicit correction and rejection outcomes.
+
+\section{Experimental Setup}
+\subsection{Comparison Workflows and Shared Inputs}
+The project's protocol specifies the workflows in Table~\ref{tab:baselines}. All three will use the same frozen case manifest, adjudicated labels, inventory state, and decision definitions. B0 participants will inspect source documents and use the same reference data through a read-only interface. They will record extracted fields, anomalies, and a disposition without access to automated outputs. Automated runs will use the same hardware and restored database state. B1 and B2 will share OCR engine and configuration, preprocessing, field parser, rule version, and thresholds. B2's tool choices and bounded recovery will be the principal changes relative to B1. The current service provides components for these runs. The adaptive B2 experiment requires the planned orchestration and a workflow that can log which tools it actually executed.
+
+\begin{table}[t]
+\caption{Planned comparison workflows}
+\label{tab:baselines}
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.18}
+\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}p{0.20\columnwidth}YY@{}}
+\hline
+\textbf{Workflow} & \textbf{Extraction and checks} & \textbf{Control flow and review}\\
+\hline
+B0 Manual & Human transcription, stock and history lookup. & Operator verifies and records disposition.\\
+B1 Fixed rules & Shared OCR, parser, queries, and rules. & Fixed order with predefined error handling.\\
+B2 Domain agent & Same recognition and deterministic checks as B1. & Selects approved tools from the task and current state, with bounded recovery and escalation.\\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Dataset, Partitioning, and Reference Labels}
+The proposed main corpus targets 300--500 anonymized or synthetic documents in Chinese and English, with at least three document types and five templates. Each document will be paired with a frozen inventory snapshot, item master, document history, and a reference disposition. Planned cases include normal examples, duplicates, missing critical fields, unknown SKUs, invalid quantities or units, shortages, warehouse mismatches, and missing batch or expiry information where policy applies. SROIE and DocVQA may be used for document-processing pretests with separate reporting. Warehouse evaluation will use warehouse-specific cases.
+
+The split will use vendor and template groups with target proportions of 60/20/20 for development, validation, and test and random seed 20261024. Variants of a source document, including image degradations, will remain in the same split. Development data will support parser or planner changes. Validation data will support rule configuration, preprocessing, and threshold decisions. The held-out cases, code revision, manifest checksum, stock snapshots, and component versions will be frozen before the main run. If group sizes prevent balanced splits, the resulting document types and class counts will be reported alongside the results.
+
+Annotators will record the text or structured value for each critical field and the evidence needed to verify it. They will label all relevant exception classes and the expected disposition under the supplied policy and snapshot. For example, a shortage label requires a valid item and quantity plus the stock balance applicable to that case. A low-confidence read, absent source, or ambiguous business instruction can yield a valid review disposition even when the final stock outcome cannot be decided. Planned independent annotation and adjudication will resolve disagreements before baseline outputs are scored. Cases with injected anomalies will retain a record of the changed field or inventory condition so extraction and decision errors can be analyzed separately.
+% TODO: Record collection and permission details, actual counts by split and
+% class, annotation and adjudication procedures, and the frozen manifest.
+
+\subsection{Procedure and Outcome Measures}
+Before testing, the study will specify which fields are required by document type, how missing values are scored, which source failures justify review, and which cases meet the task-completion criteria. Manual cases will be presented in a randomized or counterbalanced order to reduce practice and fatigue effects. The automated runs will restore each case's inventory and history state so a prior attempt cannot change a later attempt. End-to-end time will include reading, entry, lookup, and submission for B0 and will include manual follow-up for a case escalated by B2. When comparing workflows, the analysis will identify time spent in recognition, lookup, and human review separately where those stages apply. B0 operator participation, consent, and timing procedures are pending confirmation.
+
+Text recognition will be measured on applicable automated cases using character error rate (CER), the sum of substitutions, deletions, and insertions divided by the number of reference characters. If reported, character accuracy will be derived as \(\max(0,1-\mathrm{CER})\) under the project protocol. Field exact match will compare normalized predicted and reference values for the designated fields, with missing predictions counted as errors on applicable fields. Document exact match will require all applicable critical fields to match. The same definitions will apply to manually transcribed fields, with character-level OCR measures reserved for OCR outputs.
+
+Anomaly evaluation will report per-class precision and recall, class support, and macro-F1 across the prespecified anomaly classes. Duplicate detection will also be reported separately, with its confusion counts to show whether overall accuracy reflects successful duplicate detection or a large number of negative cases. The primary comparison is planned as the paired B2 minus B1 difference in anomaly macro-F1. A document-level paired bootstrap will estimate a 95\% confidence interval while retaining the matched predictions for each resampled case. The formal report will state handling of undefined class metrics and include the absolute scores along with the difference.
+% TODO: Confirm the primary endpoint and freeze zero-support and failure-scoring rules.
+
+Operational measures will include mean, median, and 95th-percentile processing time, human intervention rate, and task completion. Intervention rate will use all assigned cases as its denominator. Task completion will require an acceptable disposition and the relevant evidence for the case, including justified escalation where the protocol permits it. Tool selection will be compared with the case's reference workflow for B2. The analysis will also report evidence coverage, appropriate and missed escalations, unnecessary review, and false pass recommendations on cases requiring intervention. Review rate and false pass rate will be interpreted together, since routing every case for review could reduce false passes while making the workflow less useful to operators.
+
+\subsection{Failure-Case Analysis}
+Failed attempts will remain in the evaluation under prespecified scoring rules. The planned trace analysis will classify failures by the earliest observable cause and record the downstream impact separately. An unreadable image or a PDF without a text layer will be linked to source acquisition. Incorrect text, row association, or unit extraction will be assigned to recognition or parsing based on the retained text. A lookup using the wrong warehouse identifier will be distinguished from an unavailable or stale inventory source. Rule outcomes will then be compared with the reference decision using both the parsed input and, where feasible, corrected inputs. Replaying a documented case with corrected fields can help locate a failure in recognition, orchestration, or decision rules.
+
+The analysis will examine held-out templates and image degradations such as blur and rotation as distinct strata. Examples of harmful errors include a missed shortage due to a misread decimal and a pass recommendation based on an outdated reservation balance. Examples of avoidable review include a duplicate flag caused by a reused document number and an unknown-SKU flag caused by a correct identifier being looked up in the wrong warehouse. Cases with multiple plausible causes will retain the evidence for each. If secondary analyses vary review thresholds or remove selected controls, the report will identify those changes and maintain the frozen main comparison.
+
+\section{Results and Discussion}
+\subsection{Completed Functional Verification}
+The README records a previous run with six passing prototype automated tests. We reran the suite on the project revision identified in~\cite{project} and observed six passing tests. The tests exercise the analysis service and repository with a fresh temporary SQLite database per case. Table~\ref{tab:tests} describes the observed assertions. Most cases inject the synthetic provider. The invalid-image case invokes the automatic provider with malformed image bytes and expects a Tesseract-related error. This verifies the failure response under the test conditions.
+
+\begin{table}[t]
+\caption{Assertions covered by the six prototype tests}
+\label{tab:tests}
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\columnwidth}{@{}>{\raggedright\arraybackslash}p{0.27\columnwidth}Y@{}}
+\hline
+\textbf{Test case} & \textbf{Verified behavior}\\
+\hline
+Valid fixture and confirmation & Analysis recommends passing, returns a seven-step plan, and leaves history empty until confirmation. Confirmation adds a record and the trace contains two audit events.\\
+Exact duplicate & A subsequent analysis flags the same document number and a second write is blocked.\\
+Missing fields & A fixture with no document number, date, warehouse, or parsed lines requests correction.\\
+Empty input & Analysis returns a failure with an explicit empty-file code and requires human attention.\\
+Invalid image input & Automatic image routing returns a Tesseract-related failure for malformed input.\\
+Insufficient stock & An outbound request of 95 pieces against 90 available is flagged and routed to review.\\
+\hline
+\end{tabularx}
+\end{table}
+
+The test count refers to software assertions on chosen cases. It provides no estimate of recognition accuracy, anomaly recall, or operational throughput. The suite covers service-level confirmation and persistence. Image recognition quality, successful PDF extraction in representative documents, multi-line allocation, and review behavior with real operators require separate evaluation. The tests establish a starting point for detecting workflow regressions while the experimental corpus is assembled.
+
+\subsection{Formal Comparison Status}
+The experimental protocol marks B0, B1, and B2 as not run. Dataset collection, adjudication, and the comparison of adaptive against fixed orchestration remain pending. No observed character accuracy, field exact match, anomaly F1, latency, or intervention rate is available for the three workflows. The synthetic shortage example is a worked instance of an existing rule. Comparative conclusions will depend on the frozen corpus and baseline runs.
+% TODO: Report actual corpus counts, per-baseline scores, paired differences,
+% confidence intervals, error counts, and review outcomes after the formal study.
+
+\subsection{Effects of Recognition Errors}
+The effect of a recognition error depends on the field and the downstream check. An error in an item description may leave the recommendation unchanged. An error in the warehouse, SKU, unit, or quantity may cause a different inventory row to be selected or may move the requested amount across the shortage boundary. If a mistaken identifier is itself valid, the current exact lookup can return a plausible but unrelated row. If it is absent, human review may be appropriate even though the reported symptom is an unknown SKU. The planned error analysis will pair exact-match scores with final decisions and isolate which mistakes were caught by rules.
+
+Confidence also affects review load. The current minimum of fixed provider scores can say which recognition path supplied the lowest score. It offers little information about whether a specific quantity or SKU was read incorrectly. Field-level evidence such as bounding boxes would help reviewers inspect affected regions. Validation data will be needed to determine whether a score threshold predicts errors, how performance varies by language and layout, and whether rejecting low-score cases helps at the point of decision. An embedded text layer also requires validation because correct text extraction order and correct table association are separate issues.
+
+\subsection{Effects of Inventory Freshness and Rule Coverage}
+The shortage calculation gives a conditional answer for the retrieved record. If reservations increase after the snapshot, the previous balance can allow an infeasible request. If reservations are released or stock is replenished, the old balance can produce an unnecessary hold. An explicit as-of timestamp and threshold would allow the system to distinguish a calculated shortage from a balance whose validity is uncertain. The SQLite prototype stores balances and reservations but lacks a freshness gate. Even with gate logic, an actual shipment system would need to coordinate the decision with reservation changes between review and release.
+
+Rules also define the meaning of a comparison. Testing whether a unit token is recognized does not establish that the document and inventory row use the same unit. A comparison involving cartons and pieces needs a validated conversion factor or a review path. Likewise, two individually feasible lines can exceed the balance when aggregated. Evaluation with these cases can distinguish shortages the implemented per-line check can detect from controls that require richer transaction context.
+
+\subsection{Effects of Human Review and Limits to Generalization}
+Human review can catch a mismatch when the reviewer can see the original line, the parsed fields, and the inventory values that generated the finding. A generic warning increases the amount of reconstruction required. The planned interface will support distinct actions for corrections, rejection, confirmation, and reprocessing, with evidence attached to each action. The evaluation will measure how often a reviewer must intervene and whether the exception was handled correctly, including time spent reviewing records that would have been safe to process. Review remains a source of error when labels are ambiguous, staff lack a current snapshot, or an apparently precise score encourages undue reliance.
+
+Synthetic documents make it possible to generate controlled exceptions and repeat a case across workflows. They may underrepresent handwriting, irregular layouts, document damage, and the conventions of a particular warehouse. A result from a held-out synthetic template therefore supports conclusions about that evaluation set. Generalization to real operations will require representative documents, appropriate permissions, and a review setting that reflects the intended deployment. A stronger adaptive planner could also introduce extra tool calls and delay. The shared-component comparison will test whether those costs are accompanied by improvements in detection, evidence, or review.
+
+\section{Conclusion}
+This paper describes a warehouse document processing prototype that parses electronic inputs, checks local history and stock records, and presents findings for human confirmation. Six automated tests verify specified service and repository behaviors under synthetic or controlled failure inputs. The formal comparison will evaluate manual verification, fixed rules, and adaptive orchestration on matched documents and inventory states. Measuring extraction, anomaly detection, escalation, and review time together will help determine where orchestration adds value and where recognition, stock data quality, or policy coverage limits the decision.
+
+\begin{thebibliography}{10}
+\bibitem{sroie}
+Z. Huang, K. Chen, J. He, X. Bai, D. Karatzas, S. Lu, and C. V. Jawahar, \emph{ICDAR2019 Competition on Scanned Receipt OCR and Information Extraction}, Proc. ICDAR, 2019, doi: 10.1109/ICDAR.2019.00244.
+
+\bibitem{docvqa}
+M. Mathew, D. Karatzas, and C. V. Jawahar, \emph{DocVQA: A Dataset for VQA on Document Images}, Proc. WACV, 2021, doi: 10.1109/WACV48630.2021.00225.
+
+\bibitem{aidagent}
+B. Li, J. Conen, and F. Aller, \emph{AID-Agent: An LLM-Agent for Advanced Extraction and Integration of Documents}, Proc. REALM, 2025, pp. 80--88, doi: 10.18653/v1/2025.realm-1.6.
+
+\bibitem{docagent}
+L. Sun, L. He, S. Jia, Y. He, and C. You, \emph{DocAgent: An Agentic Framework for Multi-Modal Long-Context Document Understanding}, Proc. EMNLP, 2025, pp. 17701--17716, doi: 10.18653/v1/2025.emnlp-main.893.
+
+\bibitem{inventory}
+N. DeHoratius and A. Raman, \emph{Inventory Record Inaccuracy: An Empirical Analysis}, Management Science, vol. 54, no. 4, pp. 627--641, 2008, doi: 10.1287/mnsc.1070.0789.
+
+\bibitem{cycle}
+I. R. Destro, F. H. Staudt, K. Somensi, and C. Taboada, \emph{The Impacts of Inventory Record Inaccuracy and Cycle Counting on Distribution Center Performance}, Production, vol. 33, 2023, doi: 10.1590/0103-6513.20220077.
+
+\bibitem{gs1}
+GS1, \emph{GS1 Logistic Label Guideline}, release 1.3, 2019. [Online]. Available: \url{https://ref.gs1.org/guidelines/logistic-label/1.3.0/}
+
+\bibitem{amershi}
+S. Amershi \emph{et al.}, \emph{Guidelines for Human-AI Interaction}, Proc. CHI, 2019, doi: 10.1145/3290605.3300233.
+
+\bibitem{nist}
+E. Tabassi, \emph{Artificial Intelligence Risk Management Framework (AI RMF 1.0)}, NIST AI 100-1, 2023, doi: 10.6028/NIST.AI.100-1.
+
+\bibitem{project}
+\emph{Smart Warehouse AI Agent}, project repository, revision \texttt{78c5dfa}, README and prototype integration suite, 2026. [Online]. Available: \url{https://github.com/john19991225-commits/-/tree/78c5dfa897fb4e70abf9a3812d461239025c72ef}
+\end{thebibliography}
+\end{document}
